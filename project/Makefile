@@ -5,6 +5,7 @@ OS := $(strip $(shell uname -o))
 
 FRONT_END_BINARY := frontend-app
 BROKER_BINARY := broker-app
+AUTH_BINARY := auth-app
 
 
 .PHONY: up
@@ -15,7 +16,7 @@ up:   ## Start all containers in the background without forcing build
 
 
 .PHONY: up-build
-up-build: build-broker   ## Stops docker-compose if running, builds all projects, starts docker compose
+up-build: build-broker build-auth  ## Stops docker-compose if running, builds all projects, starts docker compose
 	@echo "Stopping docker images, if running..."
 	docker-compose down
 	@echo "Building, when required, and starting docker images..."
@@ -34,6 +35,13 @@ down:   ## Stop docker compose
 build-broker:   ## Build the broker binary as a linux executable
 	@echo "Building broker binary..."
 	cd ../broker-service && env GOOS=linux CGO_ENABLED=0 go build -o ${BROKER_BINARY} ./cmd/api
+	@echo "Done!"
+
+
+.PHONY: build-auth
+build-auth:   ## Build the authentication binary as a linux executable
+	@echo "Building auth binary..."
+	cd ../auth-service && env GOOS=linux CGO_ENABLED=0 go build -o ${AUTH_BINARY} ./cmd/api
 	@echo "Done!"
 
 
