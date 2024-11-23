@@ -1,1 +1,5 @@
 project/db-data/postgres
+
+*/broker-app
+*/auth-app
+*/frontend-app
