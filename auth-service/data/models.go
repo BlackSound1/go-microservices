@@ -49,7 +49,7 @@ func (u *User) GetAll() ([]*User, error) {
 		SELECT 
 			id, email, first_name, last_name, password, user_active, created_at, updated_at
 		FROM
-			users
+			public.users
 		ORDER BY
 			last_name
 	`
@@ -95,7 +95,7 @@ func (u *User) GetByEmail(email string) (*User, error) {
 		SELECT 
 			id, email, first_name, last_name, password, user_active, created_at, updated_at
 		FROM
-			users
+			public.users
 		WHERE
 			email = $1
 	`
@@ -131,7 +131,7 @@ func (u *User) GetByID(id int) (*User, error) {
 		SELECT
 			id, email, first_name, last_name, password, user_active, created_at, updated_at
 		FROM
-			users
+			public.users
 		WHERE
 			id = $1
 	`
@@ -165,7 +165,7 @@ func (u *User) Update() error {
 
 	stmt := `
 		UPDATE
-			users
+			public.users
 		SET
 			email = $1,
 			first_name = $2,
@@ -202,7 +202,7 @@ func (u *User) Delete() error {
 
 	stmt := `
 		DELETE FROM
-			users
+			public.users
 		WHERE
 			id = $1
 	`
@@ -224,7 +224,7 @@ func (u *User) DeleteByID(id int) error {
 
 	stmt := `
 		DELETE FROM
-			users
+			public.users
 		WHERE
 			id = $1
 	`
@@ -255,7 +255,7 @@ func (u *User) Insert(user User) (int, error) {
 
 	stmt := `
 		INSERT INTO
-			users 
+			public.users 
 				(email, first_name, last_name, password, user_active, created_at, updated_at)
 		VALUES
 			($1, $2, $3, $4, $5, $6, $7)
@@ -296,7 +296,7 @@ func (u *User) ResetPassword(password string) error {
 
 	stmt := `
 		UPDATE
-			users
+			public.users
 		SET
 			password = $1
 		WHERE
