@@ -47,7 +47,7 @@ build-auth:   ## Build the authentication binary as a linux executable
 
 
 .PHONY: build-logger
-build-broker:   ## Build the logger binary as a linux executable
+build-logger:   ## Build the logger binary as a linux executable
 	@echo "Building logger binary..."
 	cd ../logger-service && env GOOS=linux CGO_ENABLED=0 go build -o ${LOGGER_BINARY} ./cmd/api
 	@echo "Done!"
