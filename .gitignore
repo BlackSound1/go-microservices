@@ -4,3 +4,4 @@ project/db-data/postgres
 */auth-app*
 */frontend-app*
 */logger-app*
+*/mail-app*
