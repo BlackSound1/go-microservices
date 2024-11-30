@@ -1,6 +1,8 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // SendMail handles sending an email by reading the request payload,
 // constructing a Message object, and sending it via the Mailer.

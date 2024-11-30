@@ -44,14 +44,14 @@ services:
       context: ./../mail-service
       dockerfile: ./../mail-service/mail-service.dockerfile
     restart: always
-    ports:
-      - "80:80"
+    # ports:
+    #   - "80:80"
     deploy:
       mode: replicated
       replicas: 1
     environment:
       MAIL_DOMAIN: localhost
-      MAIL_HOST: mailhog-servce
+      MAIL_HOST: mailhog-service
       MAIL_PORT: 1025
       MAIL_ENCRYPTION: none
       MAIL_USERNAME: ""
