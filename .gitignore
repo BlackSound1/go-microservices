@@ -1,4 +1,4 @@
-project/db-data/postgres
+project/db-data/*
 
 */broker-app*
 */auth-app*
