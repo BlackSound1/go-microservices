@@ -5,3 +5,4 @@ project/db-data/*
 */frontend-app*
 */logger-app*
 */mail-app*
+*/listener-app*

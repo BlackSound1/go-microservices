@@ -8,6 +8,7 @@ BROKER_BINARY := broker-app
 AUTH_BINARY := auth-app
 LOGGER_BINARY := logger-app
 MAIL_BINARY := mail-app
+LISTENER_BINARY := listener-app
 
 
 .PHONY: up
@@ -18,7 +19,7 @@ up:   ## Start all containers in the background without forcing build
 
 
 .PHONY: up-build
-up-build: build-broker build-auth build-logger build-mail  ## Stops docker-compose if running, builds all projects, starts docker compose
+up-build: build-broker build-auth build-logger build-mail build-listener ## Stops docker-compose if running, builds all projects, starts docker compose
 	@echo "Stopping docker images, if running..."
 	docker-compose down
 	@echo "Building, when required, and starting docker images..."
@@ -58,6 +59,13 @@ build-logger:   ## Build the logger binary as a linux executable
 build-mail:   ## Build the mail binary as a linux executable
 	@echo "Building mail binary..."
 	cd ../mail-service && env GOOS=linux CGO_ENABLED=0 go build -o ${MAIL_BINARY} ./cmd/api
+	@echo "Done!"
+
+
+.PHONY: build-listener
+build-listener:   ## Build the listener binary as a linux executable
+	@echo "Building listener binary..."
+	cd ../listener-service && env GOOS=linux CGO_ENABLED=0 go build -o ${LISTENER_BINARY} .
 	@echo "Done!"
 
 

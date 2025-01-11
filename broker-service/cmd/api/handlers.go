@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/BlackSound1/go-microservices/broker/event"
 )
 
 type RequestPayload struct {
@@ -68,7 +70,8 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "auth":
 		app.authenticate(w, requestPayload.Auth)
 	case "log":
-		app.logItem(w, requestPayload.Log)
+		app.logEventViaRabbit(w, requestPayload.Log)
+		// app.logItem(w, requestPayload.Log)
 	case "mail":
 		app.sendMail(w, requestPayload.Mail)
 	default:
@@ -111,46 +114,87 @@ func (app *Config) sendMail(w http.ResponseWriter, msg MailPayload) {
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
-// logItem sends a request to the log service to log the given entry
-func (app *Config) logItem(w http.ResponseWriter, entry LogPayload) {
+// // logItem sends a request to the log service to log the given entry
+// func (app *Config) logItem(w http.ResponseWriter, entry LogPayload) {
 
-	// Convert given entry into JSON
-	jsonData, _ := json.MarshalIndent(entry, "", "\t")
+// 	// Convert given entry into JSON
+// 	jsonData, _ := json.MarshalIndent(entry, "", "\t")
 
-	logServiceURL := "http://logger-service/log"
+// 	logServiceURL := "http://logger-service/log"
 
-	// Create a new request to the log service
-	req, err := http.NewRequest("POST", logServiceURL, bytes.NewBuffer(jsonData))
+// 	// Create a new request to the log service
+// 	req, err := http.NewRequest("POST", logServiceURL, bytes.NewBuffer(jsonData))
+// 	if err != nil {
+// 		app.errorJSON(w, err)
+// 		return
+// 	}
+
+// 	// Set the necessary header
+// 	req.Header.Set("Content-Type", "application/json")
+
+// 	// Perform the request
+// 	client := &http.Client{}
+// 	resp, err := client.Do(req)
+// 	if err != nil {
+// 		app.errorJSON(w, err)
+// 		return
+// 	}
+// 	defer resp.Body.Close()
+
+// 	// Check status code
+// 	if resp.StatusCode != http.StatusAccepted {
+// 		app.errorJSON(w, errors.New("error calling log service"))
+// 		return
+// 	}
+
+// 	// Create a JSON response
+// 	var payload JSONResponse
+// 	payload.Error = false
+// 	payload.Message = "logged"
+
+// 	// Write the response
+// 	app.writeJSON(w, http.StatusAccepted, payload)
+// }
+
+// logEventViaRabbit sends a request to the log service to log the given entry via RabbitMQ
+func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
+
+	// Push the log entry to the RabbitMQ queue
+	err := app.pushToQueue(l.Name, l.Data)
 	if err != nil {
 		app.errorJSON(w, err)
-		return
-	}
-
-	// Set the necessary header
-	req.Header.Set("Content-Type", "application/json")
-
-	// Perform the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
-	defer resp.Body.Close()
-
-	// Check status code
-	if resp.StatusCode != http.StatusAccepted {
-		app.errorJSON(w, errors.New("error calling log service"))
 		return
 	}
 
 	// Create a JSON response
 	var payload JSONResponse
 	payload.Error = false
-	payload.Message = "logged"
+	payload.Message = "logged via RabbitMQ"
 
 	// Write the response
 	app.writeJSON(w, http.StatusAccepted, payload)
+}
+
+// pushToQueue initializes an event emitter and sends a log message to a RabbitMQ queue
+func (app *Config) pushToQueue(name, msg string) error {
+
+	// Try to create a new emitter
+	emitter, err := event.NewEventEmitter(app.Rabbit)
+	if err != nil {
+		return err
+	}
+
+	// Create a LogPayload and turn it into JSON
+	payload := LogPayload{Name: name, Data: msg}
+	j, _ := json.MarshalIndent(&payload, "", "\t")
+
+	// Push the JSON string to the queue
+	err = emitter.Push(string(j), "log.INFO")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // authenticate sends a request to the auth service to verify the user's credentials.
