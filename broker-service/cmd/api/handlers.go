@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-
-	"github.com/BlackSound1/go-microservices/broker/event"
+	"net/rpc"
 )
 
 type RequestPayload struct {
@@ -70,7 +69,8 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "auth":
 		app.authenticate(w, requestPayload.Auth)
 	case "log":
-		app.logEventViaRabbit(w, requestPayload.Log)
+		app.logItemViaRPC(w, requestPayload.Log)
+		// app.logEventViaRabbit(w, requestPayload.Log)
 		// app.logItem(w, requestPayload.Log)
 	case "mail":
 		app.sendMail(w, requestPayload.Mail)
@@ -156,46 +156,81 @@ func (app *Config) sendMail(w http.ResponseWriter, msg MailPayload) {
 // 	app.writeJSON(w, http.StatusAccepted, payload)
 // }
 
-// logEventViaRabbit sends a request to the log service to log the given entry via RabbitMQ
-func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
+// // logEventViaRabbit sends a request to the log service to log the given entry via RabbitMQ
+// func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
 
-	// Push the log entry to the RabbitMQ queue
-	err := app.pushToQueue(l.Name, l.Data)
+// 	// Push the log entry to the RabbitMQ queue
+// 	err := app.pushToQueue(l.Name, l.Data)
+// 	if err != nil {
+// 		app.errorJSON(w, err)
+// 		return
+// 	}
+
+// 	// Create a JSON response
+// 	var payload JSONResponse
+// 	payload.Error = false
+// 	payload.Message = "logged via RabbitMQ"
+
+// 	// Write the response
+// 	app.writeJSON(w, http.StatusAccepted, payload)
+// }
+
+type RPCPayload struct {
+	Name string
+	Data string
+}
+
+// logItemViaRPC sends the given log entry to the logger service as an RPC request
+func (app *Config) logItemViaRPC(w http.ResponseWriter, l LogPayload) {
+
+	// Try to connect to the logger service
+	client, err := rpc.Dial("tcp", "logger-service:5001")
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	defer client.Close()
+
+	// Create the RPC payload
+	rpcPayload := RPCPayload(l)
+
+	// Call the RPC server to log the entry
+	var result string
+	err = client.Call("RPCServer.LogInfo", rpcPayload, &result)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
 	}
 
-	// Create a JSON response
-	var payload JSONResponse
-	payload.Error = false
-	payload.Message = "logged via RabbitMQ"
-
-	// Write the response
+	// Send a JSON response
+	payload := JSONResponse{
+		Error:   false,
+		Message: result,
+	}
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
-// pushToQueue initializes an event emitter and sends a log message to a RabbitMQ queue
-func (app *Config) pushToQueue(name, msg string) error {
+// // pushToQueue initializes an event emitter and sends a log message to a RabbitMQ queue
+// func (app *Config) pushToQueue(name, msg string) error {
 
-	// Try to create a new emitter
-	emitter, err := event.NewEventEmitter(app.Rabbit)
-	if err != nil {
-		return err
-	}
+// 	// Try to create a new emitter
+// 	emitter, err := event.NewEventEmitter(app.Rabbit)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	// Create a LogPayload and turn it into JSON
-	payload := LogPayload{Name: name, Data: msg}
-	j, _ := json.MarshalIndent(&payload, "", "\t")
+// 	// Create a LogPayload and turn it into JSON
+// 	payload := LogPayload{Name: name, Data: msg}
+// 	j, _ := json.MarshalIndent(&payload, "", "\t")
 
-	// Push the JSON string to the queue
-	err = emitter.Push(string(j), "log.INFO")
-	if err != nil {
-		return err
-	}
+// 	// Push the JSON string to the queue
+// 	err = emitter.Push(string(j), "log.INFO")
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // authenticate sends a request to the auth service to verify the user's credentials.
 func (app *Config) authenticate(w http.ResponseWriter, a AuthPayload) {

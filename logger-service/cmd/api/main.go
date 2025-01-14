@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"net/rpc"
 	"time"
 
 	"github.com/BlackSound1/go-microservices/logger/data"
@@ -37,7 +40,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	// Disconnect whenver it is time to
+	// Disconnect whenever it is time to
 	defer func() {
 		if err = client.Disconnect(ctx); err != nil {
 			panic(err)
@@ -47,6 +50,15 @@ func main() {
 	app := Config{
 		Models: data.New(client),
 	}
+
+	// Register our custom RPC server type
+	err = rpc.Register(new(RPCServer))
+	if err != nil {
+		log.Fatal("error registering RPC server: ", err)
+	}
+
+	// Start RPC server. Needs to be on separate goroutine because it is blocking
+	go app.rpcListen()
 
 	// Start web server
 	app.serve()
@@ -65,6 +77,32 @@ func (app *Config) serve() {
 	err := srv.ListenAndServe()
 	if err != nil {
 		log.Panic(err)
+	}
+}
+
+// rpcListen starts an RPC server on the configured RPC_PORT (default 5001). It
+// continually listens for incoming TCP connections and serves each connection on
+// a separate goroutine
+func (app *Config) rpcListen() error {
+
+	log.Println("Starting RPC server on port: " + RPC_PORT)
+
+	// Start listen for TCP connections on RPC_PORT
+	listen, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", RPC_PORT))
+	if err != nil {
+		return err
+	}
+	defer listen.Close()
+
+	// Continually try to accept connections. When connection is accepted,
+	// serve the connection on a separate goroutine (because ServeConn is blocking)
+	for {
+		rpcConn, err := listen.Accept()
+		if err != nil {
+			continue
+		}
+
+		go rpc.ServeConn(rpcConn)
 	}
 }
 
