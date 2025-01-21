@@ -67,7 +67,7 @@ func (l *LogEntry) GetAll() ([]*LogEntry, error) {
 
 	// Set some options to sort the logs by creation date (ASC)
 	opts := options.Find()
-	opts.SetSort(bson.D{{"created_at", -1}})
+	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
 
 	// Execute find command on the logs collections
 	cursor, err := collection.Find(context.TODO(), bson.D{{}}, opts)
@@ -114,7 +114,7 @@ func (l *LogEntry) GetOne(id string) (*LogEntry, error) {
 		return nil, err
 	}
 
-	// Start ceating output
+	// Start creating output
 	var entry LogEntry
 
 	// Find the log entry by id
@@ -166,10 +166,10 @@ func (l *LogEntry) Update() (*mongo.UpdateResult, error) {
 		ctx,
 		bson.M{"_id": docID},
 		bson.D{
-			{"$set", bson.D{
-				{"name", l.Name},
-				{"data", l.Data},
-				{"updated_at", time.Now()},
+			{Key: "$set", Value: bson.D{
+				{Key: "name", Value: l.Name},
+				{Key: "data", Value: l.Data},
+				{Key: "updated_at", Value: time.Now()},
 			}},
 		},
 	)

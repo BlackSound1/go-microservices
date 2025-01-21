@@ -60,6 +60,9 @@ func main() {
 	// Start RPC server. Needs to be on separate goroutine because it is blocking
 	go app.rpcListen()
 
+	// Start gRPC server. Needs to be on separate goroutine because it is blocking
+	go app.grpcListen()
+
 	// Start web server
 	app.serve()
 }

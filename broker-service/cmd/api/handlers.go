@@ -2,10 +2,16 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/rpc"
+	"time"
+
+	"github.com/BlackSound1/go-microservices/broker/logs"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type RequestPayload struct {
@@ -178,6 +184,51 @@ func (app *Config) sendMail(w http.ResponseWriter, msg MailPayload) {
 type RPCPayload struct {
 	Name string
 	Data string
+}
+
+// logItemViaGRPC sends the given log entry to the logger service as a gRPC request
+func (app *Config) logItemViaGRPC(w http.ResponseWriter, r *http.Request) {
+
+	// Read the JSON
+	var requestPayload RequestPayload
+	err := app.readJSON(w, r, &requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	// Connect to the gRPC server
+	conn, err := grpc.Dial("logger-service:50001", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	defer conn.Close()
+
+	// Create the gRPC client
+	c := logs.NewLogServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	// Try to write a log
+	_, err = c.WriteLog(ctx, &logs.LogRequest{
+		LogEntry: &logs.Log{
+			Name: requestPayload.Log.Name,
+			Data: requestPayload.Log.Data,
+		},
+	})
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	// Create a JSON response
+	var payload JSONResponse
+	payload.Error = false
+	payload.Message = "logged"
+
+	// Write the response
+	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
 // logItemViaRPC sends the given log entry to the logger service as an RPC request
