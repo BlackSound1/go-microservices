@@ -73,7 +73,7 @@
                 headers: headers,
             };
 
-            fetch("http:\/\/localhost:8080/handle", body)
+            fetch({{print .BrokerURL "/handle"}}, body)
             .then(res => res.json()) // Then convert response to JSON
             .then(data => { // Then process the JSON data
                 sent.innerHTML = JSON.stringify(payload, undefined, 4); // Change sent text
@@ -110,7 +110,7 @@
                 headers: headers,
             };
 
-            fetch("http:\/\/localhost:8080/handle", body)
+            fetch({{print .BrokerURL "/handle"}}, body)
             .then(res => res.json()) // Then convert response to JSON
             .then(data => { // Then process the JSON data
                 sent.innerHTML = JSON.stringify(payload, undefined, 4); // Change sent text
@@ -147,7 +147,7 @@
                 headers: headers,
             };
 
-            fetch("http:\/\/localhost:8080/log-grpc", body)
+            fetch({{print .BrokerURL "/log-grpc"}}, body)
             .then(res => res.json()) // Then convert response to JSON
             .then(data => { // Then process the JSON data
                 sent.innerHTML = JSON.stringify(payload, undefined, 4); // Change sent text
@@ -172,7 +172,7 @@
                 method: "POST",
             };
 
-            fetch("http:\/\/localhost:8080", body) // Send empty body
+            fetch({{print .BrokerURL}}, body) // Send empty body
             .then(res => res.json()) // Then convert response to JSON
             .then(data => { // Then process the JSON data
                 sent.innerHTML = "empty POST request"; // Change sent text
@@ -210,7 +210,7 @@
                 headers: headers,
             };
 
-            fetch("http:\/\/localhost:8080/handle", body)
+            fetch({{print .BrokerURL "/handle"}}, body)
             .then(res => res.json()) // Then convert response to JSON
             .then(data => { // Then process the JSON data
                 sent.innerHTML = JSON.stringify(payload, undefined, 4); // Change sent text

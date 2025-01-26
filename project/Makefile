@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 OS := $(strip $(shell uname -o))
 
-FRONT_END_BINARY := frontend-app
+FRONT_END_BINARY := front-end-app
 BROKER_BINARY := broker-app
 AUTH_BINARY := auth-app
 LOGGER_BINARY := logger-app
@@ -19,7 +19,7 @@ up:   ## Start all containers in the background without forcing build
 
 
 .PHONY: up-build
-up-build: build-broker build-auth build-logger build-mail build-listener ## Stops docker-compose if running, builds all projects, starts docker compose
+up-build: build-broker build-auth build-logger build-mail build-listener build-front ## Stops docker-compose if running, builds all projects, starts docker compose
 	@echo "Stopping docker images, if running..."
 	docker-compose down
 	@echo "Building, when required, and starting docker images..."
@@ -70,9 +70,9 @@ build-listener:   ## Build the listener binary as a linux executable
 
 
 .PHONY: build-front
-build-front:   ## Build the front end binary as a windows executable
+build-front:   ## Build the front end binary as a linux executable
 	@echo "Building front end binary..."
-	cd ../front-end && env CGO_ENABLED=0 go build -o ${FRONT_END_BINARY} ./cmd/web
+	cd ../front-end-service && env GOOS=linux CGO_ENABLED=0 go build -o ${FRONT_END_BINARY} ./cmd/web
 	@echo "Done!"
 
 
@@ -91,6 +91,62 @@ stop:   ## Stop the front end
 		taskkill -IM "${FRONT_END_BINARY}" -F 
 	@fi
 	@echo "Front end stopped!"
+
+
+TAG ?= latest
+SERVICE ?= "logger"
+
+
+.PHONY: build-push
+build-push:   ## Build and push the given service (with the given tag) to Docker Hub
+	@echo "Building and pushing Docker image ${SERVICE}-service with tag ${TAG}..."
+	docker build -f ../${SERVICE}-service/${SERVICE}-service.dockerfile -t blacksound1/${SERVICE}-service:${TAG} ../${SERVICE}-service
+	docker push blacksound1/${SERVICE}-service:${TAG}
+	@echo "Docker image built and pushed!"
+
+
+.PHONY: swarm-init
+swarm-init:   ## Initialize the Docker Swarm
+	@echo "Initializing Docker Swarm..."
+	docker swarm init
+	@echo "Docker Swarm initialized!"
+
+
+.PHONY: swarm-deploy
+swarm-deploy:   ## Deploy the Docker Swarm
+	@echo "Deploying Docker Swarm..."
+	docker stack deploy -c swarm.yml myapp
+	@echo "Docker Swarm deployed!"
+
+
+.PHONY: swarm-undeploy
+swarm-undeploy:   ## Undeploy the Docker Swarm
+	@echo "Undeploying Docker Swarm..."
+	docker stack rm myapp
+	@echo "Docker Swarm undeployed!"
+
+
+.PHONY: swarm-leave
+swarm-leave:   ## Leave the Docker Swarm
+	@echo "Leaving Docker Swarm..."
+	docker swarm leave --force
+	@echo "Docker Swarm left!"
+
+
+SCALE ?= 1
+
+.PHONY: swarm-scale
+swarm-scale:   ## Scale the a service in the Docker Swarm by a given number
+	@echo "Scaling service ${SERVICE}..."
+	docker service scale myapp_${SERVICE}-service=${SCALE}
+	@echo "Service scaled!"
+
+
+.PHONY: swarm-update
+swarm-update:   ## Update and image in the Docker Swarm
+	@echo "Updating service ${SERVICE}..."
+	docker service update --image blacksound1/${SERVICE}-service:${TAG} myapp_${SERVICE}-service
+	@echo "Service updated!"
 
 
 .PHONY: help

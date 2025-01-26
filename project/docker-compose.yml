@@ -29,7 +29,6 @@ services:
     environment:
       DSN: "host=postgres-service port=5432 user=postgres password=password dbname=postgres sslmode=disable timezone=UTC connect_timeout=5"
   
-
   logger-service:
     container_name: logger-service
     build:
@@ -39,7 +38,6 @@ services:
     deploy:
       mode: replicated
       replicas: 1
-
   
   mail-service:
     container_name: mail-service
@@ -62,7 +60,6 @@ services:
       MAIL_FROM_NAME: "Jimmy Bimmy"
       MAIL_FROM_ADDRESS: "jimmy.bimmy@test.com"
 
-
   listener-service:
     container_name: listener-service
     build:
@@ -72,6 +69,17 @@ services:
       mode: replicated
       replicas: 1
 
+  front-end-service:
+    container_name: front-end-service
+    restart: always
+    ports:
+      - "80:8081"
+    build:
+      context: ./../front-end-service
+      dockerfile: ./../front-end-service/front-end-service.dockerfile
+    deploy:
+      mode: replicated
+      replicas: 1
 
   postgres-service:
     container_name: postgres-service
@@ -89,7 +97,6 @@ services:
     volumes:
       - ./db-data/postgres/:/var/lib/postgresql/data/
 
-
   mongo-service:
     container_name: mongo-service
     image: "mongo:4.2.16-bionic"
@@ -102,14 +109,12 @@ services:
     volumes:
       - ./db-data/mongo/:/var/lib/mongodb/data/
 
-
   mailhog-service:
     container_name: mailhog-service
     image: "mailhog/mailhog:latest"
     ports:
       - "1025:1025"
       - "8025:8025"
-
 
   rabbitmq-service:
     container_name: rabbitmq-service

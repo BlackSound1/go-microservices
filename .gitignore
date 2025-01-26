@@ -3,6 +3,7 @@ project/db-data/*
 */broker-app*
 */auth-app*
 */frontend-app*
+*/front-end-app*
 */logger-app*
 */mail-app*
 */listener-app*
