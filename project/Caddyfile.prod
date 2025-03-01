@@ -1,0 +1,36 @@
+{
+    email <EMAIL>
+}
+
+(static) {
+	@static {
+		file
+		path *.ico *.css *.js *.gif *.jpg *.jpeg *.png *.svg *.woff *.json
+	}
+	header @static Cache-Control max-age=5184000
+}
+
+(security) {
+	header {
+		# Enable HSTS
+		Strict-Transport-Security max-age=31536000
+
+		# Disable clients from sniffing the media type
+		X-Content-Type-Options nosniff
+
+		# Keep referrer data off of HTTP connections
+		Referrer-Policy no-referrer-when-downgrade
+	}
+}
+
+172.105.29.253 {
+	encode zstd gzip
+	import static
+	import security
+
+	reverse_proxy  http://front-end-service:8081
+}
+
+172.105.29.15 {
+	reverse_proxy http://broker-service:8080
+}
