@@ -7,3 +7,5 @@ project/db-data/*
 */logger-app*
 */mail-app*
 */listener-app*
+
+*pdf
