@@ -14,17 +14,26 @@ const DB_TIMEOUT = time.Second * 3
 
 var db *sql.DB
 
-// New creates a Models object with the given database pool.
-func New(dbPool *sql.DB) Models {
-	db = dbPool
-
-	return Models{User: User{}}
+type PostgresRepository struct {
+	Conn *sql.DB
 }
+
+func NewPostgresRepository(conn *sql.DB) *PostgresRepository {
+	db = conn
+	return &PostgresRepository{Conn: conn}
+}
+
+// New creates a Models object with the given database pool.
+// func New(dbPool *sql.DB) Models {
+// 	db = dbPool
+
+// 	return Models{User: User{}}
+// }
 
 // Models holds all the models we will use
-type Models struct {
-	User User
-}
+// type Models struct {
+// 	User User
+// }
 
 // User holds a User from the database
 type User struct {
@@ -39,7 +48,7 @@ type User struct {
 }
 
 // GetAll gets all users from the database.
-func (u *User) GetAll() ([]*User, error) {
+func (u *PostgresRepository) GetAll() ([]*User, error) {
 
 	// To avoid long queries
 	ctx, cancel := context.WithTimeout(context.Background(), DB_TIMEOUT)
@@ -85,7 +94,7 @@ func (u *User) GetAll() ([]*User, error) {
 }
 
 // GetByEmail gets a user by email.
-func (u *User) GetByEmail(email string) (*User, error) {
+func (u *PostgresRepository) GetByEmail(email string) (*User, error) {
 
 	// To avoid long queries
 	ctx, cancel := context.WithTimeout(context.Background(), DB_TIMEOUT)
@@ -121,7 +130,7 @@ func (u *User) GetByEmail(email string) (*User, error) {
 }
 
 // GetByID gets a user by ID.
-func (u *User) GetByID(id int) (*User, error) {
+func (u *PostgresRepository) GetByID(id int) (*User, error) {
 
 	// To avoid long queries
 	ctx, cancel := context.WithTimeout(context.Background(), DB_TIMEOUT)
@@ -157,7 +166,7 @@ func (u *User) GetByID(id int) (*User, error) {
 }
 
 // Update updates the user in the database.
-func (u *User) Update() error {
+func (u *PostgresRepository) Update(user User) error {
 
 	// To avoid long queries
 	ctx, cancel := context.WithTimeout(context.Background(), DB_TIMEOUT)
@@ -179,12 +188,12 @@ func (u *User) Update() error {
 	_, err := db.ExecContext(
 		ctx,
 		stmt,
-		u.Email,
-		u.FirstName,
-		u.LastName,
-		u.Active,
+		user.Email,
+		user.FirstName,
+		user.LastName,
+		user.Active,
 		time.Now(),
-		u.ID,
+		user.ID,
 	)
 	if err != nil {
 		return err
@@ -193,30 +202,8 @@ func (u *User) Update() error {
 	return nil
 }
 
-// Delete removes the user from the database by their ID.
-func (u *User) Delete() error {
-
-	// To avoid long queries
-	ctx, cancel := context.WithTimeout(context.Background(), DB_TIMEOUT)
-	defer cancel()
-
-	stmt := `
-		DELETE FROM
-			public.users
-		WHERE
-			id = $1
-	`
-
-	_, err := db.ExecContext(ctx, stmt, u.ID)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // DeleteByID removes the user from the database by their ID.
-func (u *User) DeleteByID(id int) error {
+func (u *PostgresRepository) DeleteByID(id int) error {
 
 	// To avoid long queries
 	ctx, cancel := context.WithTimeout(context.Background(), DB_TIMEOUT)
@@ -240,7 +227,7 @@ func (u *User) DeleteByID(id int) error {
 // Insert creates a new user in the database, and returns the ID of the newly created user.
 //
 // It uses bcrypt to hash the password before storing it in the database.
-func (u *User) Insert(user User) (int, error) {
+func (u *PostgresRepository) Insert(user User) (int, error) {
 
 	// To avoid long queries
 	ctx, cancel := context.WithTimeout(context.Background(), DB_TIMEOUT)
@@ -283,7 +270,7 @@ func (u *User) Insert(user User) (int, error) {
 // ResetPassword updates the user's password in the database.
 //
 // It hashes the new password using bcrypt before storing it.
-func (u *User) ResetPassword(password string) error {
+func (u *PostgresRepository) ResetPassword(password string, user User) error {
 
 	// To avoid long queries
 	ctx, cancel := context.WithTimeout(context.Background(), DB_TIMEOUT)
@@ -303,7 +290,7 @@ func (u *User) ResetPassword(password string) error {
 			id = $2
 	`
 
-	_, err = db.ExecContext(ctx, stmt, hashedPassword, u.ID)
+	_, err = db.ExecContext(ctx, stmt, hashedPassword, user.ID)
 	if err != nil {
 		return err
 	}
@@ -312,9 +299,9 @@ func (u *User) ResetPassword(password string) error {
 }
 
 // PasswordMatches checks whether the given plaintext password matches the user's stored password.
-func (u *User) PasswordMatches(plainText string) (bool, error) {
+func (u *PostgresRepository) PasswordMatches(plainText string, user User) (bool, error) {
 
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(plainText))
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(plainText))
 	if err != nil {
 		switch {
 		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):

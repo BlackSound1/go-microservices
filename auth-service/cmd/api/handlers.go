@@ -7,6 +7,16 @@ import (
 	"net/http"
 )
 
+type RoundTripFunc func(req *http.Request) *http.Response
+
+func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req), nil
+}
+
+func NewTestClient(fn RoundTripFunc) *http.Client {
+	return &http.Client{Transport: fn}
+}
+
 // Authenticate validates a user's credentials
 func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 
@@ -24,14 +34,14 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user
-	user, err := app.Models.User.GetByEmail(requestPayload.Email)
+	user, err := app.Repo.GetByEmail(requestPayload.Email)
 	if err != nil {
 		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
 		return
 	}
 
 	// Validate password
-	valid, err := user.PasswordMatches(requestPayload.Password)
+	valid, err := app.Repo.PasswordMatches(requestPayload.Password, *user)
 	if err != nil || !valid {
 		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
 		return
@@ -76,8 +86,7 @@ func (app *Config) logRequest(name, data string) error {
 	}
 
 	// Do the request
-	client := http.Client{}
-	_, err = client.Do(req)
+	_, err = app.Client.Do(req)
 	if err != nil {
 		return err
 	}
